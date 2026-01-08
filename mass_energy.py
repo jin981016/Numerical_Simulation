@@ -117,16 +117,17 @@ def reconstruct_V(V, nx, ng):
 @njit
 def HLL_Method(U, V, nx, ng, dx, dt):
     N = V.shape[1]
-    V = outgoing(V, nx, ng)
-    V_L, V_R = reconstruct_V(V, nx, ng)
+    V = outgoing(V, nx, ng)  #2  Boundary condition V 
+    V_L, V_R = reconstruct_V(V, nx, ng) #3 Reconstruction V_L, V_R
     F = np.zeros((5, N))  
     for i in range(ng-1, nx+ng):
-        VL = V_L[:, i]
+        VL = V_L[:, i]   #  Primitive variable for each cell
         VR = V_R[:, i]
         
-        rhoL, vxL, vyL, vzL, pL = VL
+        rhoL, vxL, vyL, vzL, pL = VL 
         rhoR, vxR, vyR, vzR, pR = VR
 
+# 우선 V로 U를 유도할 때, 에러가 계속 나서, 우선 1D-2D 로 구분 하여 계산 
         UL = U_conserved_1d(VL)  # Make constant value for L 
         UR = U_conserved_1d(VR)  # Make constant value for R 
 
@@ -216,6 +217,8 @@ Time_set = 0.2
 rho_L, vx_L, vy_L, vz_L, P_L = 1.0,   0.0, 0.0, 0.0, 1.0
 rho_R, vx_R, vy_R, vz_R, P_R = 0.125, 0.0, 0.0, 0.0, 0.1
 
+
+# 1. V, U 선언
 V = np.zeros((5, N))  # make discontinuities points based on x_0
 for i in range(N):
     if x[i] < x0:
@@ -223,20 +226,17 @@ for i in range(N):
     else:
         V[:, i] = [rho_R, vx_R, vy_R, vz_R, P_R]  # Right region
 
+U =U_conserved_2d(V)
 
 
 # characteristic velocity u-cs, u ,u+cs
-
 while Time < Time_set:
-    V = outgoing(V, nx, ng)
     cs = np.sqrt(gamma * V[4, ng:nx+ng] / V[0, ng:nx+ng])  # sound speed for each cell
     umax = np.max(np.abs(V[1, ng:nx+ng]) + cs)  # maximum velocity
     dt = lam * dx / umax   
 
     if Time + dt > Time_set:
         dt = Time_set - Time
-
-    U =U_conserved_2d(V)
     # U = HLL_Method(U, V, nx, ng, dx, dt)
     U = RK2(U, V, nx, ng, dx, dt)
     V = V_primitive(U)
@@ -283,5 +283,6 @@ plt.grid(True)
 
 plt.tight_layout()
 
+plt.show()
 
 # plt.savefig('/mnt/c/Users/wlsdl/OneDrive/바탕 화면/SOD_shock_test', bbox_inches='tight')
